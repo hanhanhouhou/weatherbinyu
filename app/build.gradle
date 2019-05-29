@@ -33,6 +33,11 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
+    buildTypes.each { buildType ->
+        buildType.buildConfigField("String", "HE_FENG_KEY", "\"5cfa71f0523045cbbc2a915848c89ad4\"")
+    }
+
     sourceSets {
         main {
             jniLibs.srcDir 'libs'

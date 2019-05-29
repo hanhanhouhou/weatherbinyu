@@ -162,32 +162,20 @@ public class WeatherActivity extends AppCompatActivity {
         String queryWeather = intent.getStringExtra(KEY_LOCATION);
         boolean isAutoLocate = intent.getBooleanExtra(KEY_AUTO_LOCATE, true) &&
                 (city == null || queryWeather == null);
+
+        final View view = findViewById(R.id.best_livable_citis__text);
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+
         if (isAutoLocate) {
+            view.setVisibility(View.VISIBLE);
+            view.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    startActivity(new Intent(WeatherActivity.this, BestLivableCitiesActivity.class));
+                }
+            });
             located = false;
             setupLocationClient();
-        }
-
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        String weatherString = prefs.getString("weather", null);
-        String aqiString = prefs.getString("aqi", null);
-
-        if (weatherString != null && aqiString != null && !located) {
-            try {
-                //有缓存时先显示缓存再请求
-                Weather weather = handleWeatherResponse(weatherString);
-                Weather.HeWeather6Bean.BasicBean basicX = weather.getHeWeather6().get(0).getBasicX();
-                currentCity = basicX.getParent_city();
-                showWeatherInfo(weather);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-
-        if (!isAutoLocate) {
-            onNewIntent(intent);
-        }
-
-        if (isAutoLocate) {
             titleCity.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -203,7 +191,35 @@ public class WeatherActivity extends AppCompatActivity {
                             .show();
                 }
             });
+            navButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    drawerLayout.openDrawer(Gravity.START);
+                }
+            });
+            String weatherString = prefs.getString("weather", null);
+            String aqiString = prefs.getString("aqi", null);
+
+            if (weatherString != null && aqiString != null && !located) {
+                try {
+                    //有缓存时先显示缓存再请求
+                    Weather weather = handleWeatherResponse(weatherString);
+                    Weather.HeWeather6Bean.BasicBean basicX = weather.getHeWeather6().get(0).getBasicX();
+                    currentCity = basicX.getParent_city();
+                    showWeatherInfo(weather);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        } else {
+            view.setVisibility(View.GONE);
+            navButton.setVisibility(View.GONE);
         }
+
+        if (!isAutoLocate) {
+            onNewIntent(intent);
+        }
+
 
         swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
@@ -219,12 +235,6 @@ public class WeatherActivity extends AppCompatActivity {
         } else {
             loadBingPic();
         }
-        navButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                drawerLayout.openDrawer(Gravity.START);
-            }
-        });
 
     }
 
@@ -262,9 +272,11 @@ public class WeatherActivity extends AppCompatActivity {
 
     @Override
     protected void onDestroy() {
-        // avoid memory leak
-        locationClient.unRegisterLocationListener(bdLocationListener);
-        locationClient.stop();
+        if (locationClient != null) {
+            // avoid memory leak
+            locationClient.unRegisterLocationListener(bdLocationListener);
+            locationClient.stop();
+        }
         super.onDestroy();
     }
 
@@ -308,8 +320,8 @@ public class WeatherActivity extends AppCompatActivity {
             currentWeatherCall.cancel();
         }
 
-        final String weatherUrl = "https://free-api.heweather.com/s6/weather?location=" + currentLocation + "&key=5cfa71f0523045cbbc2a915848c89ad4";
-        final String aqiUrl = "https://free-api.heweather.com/s6/air/now?location=" + currentCity + "&key=5cfa71f0523045cbbc2a915848c89ad4";
+        final String weatherUrl = "https://free-api.heweather.com/s6/weather?location=" + currentLocation + "&key=" + BuildConfig.HE_FENG_KEY;
+        final String aqiUrl = "https://free-api.heweather.com/s6/air/now?location=" + currentCity + "&key=" + BuildConfig.HE_FENG_KEY;
 
         currentWeatherCall = HttpUtil.sendOkHttpRequest(weatherUrl, new Callback() {
 
@@ -345,10 +357,11 @@ public class WeatherActivity extends AppCompatActivity {
                             return;
                         }
                         if ((weather != null) && "ok".equals(weather.getHeWeather6().get(0).getStatusX())) {
-                            SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
-
-                            editor.putString("weather", responseText);
-                            editor.apply();
+                            if (locationClient != null) {
+                                SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
+                                editor.putString("weather", responseText);
+                                editor.apply();
+                            }
                             showWeatherInfo(weather);
 
                         } else {
@@ -398,10 +411,11 @@ public class WeatherActivity extends AppCompatActivity {
                             return;
                         }
                         if ((aqi != null) && "ok".equals(aqi.getHeWeather6().get(0).getStatus())) {
-                            SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
-
-                            editor.putString("aqi", responseText);
-                            editor.apply();
+                            if (locationClient != null) {
+                                SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
+                                editor.putString("aqi", responseText);
+                                editor.apply();
+                            }
                             showAQIInfo(aqi);
                         } else {
                             Toast.makeText(WeatherActivity.this, responseText, Toast.LENGTH_SHORT).show();
