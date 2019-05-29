@@ -1,9 +1,21 @@
 apply plugin: 'com.android.application'
 
 android {
+    signingConfigs {
+        debug {
+            storeFile file('../keystore/debug.keystore')
+            storePassword 'android'
+        }
+        release {
+            storeFile file('../keystore/cool_weather.jks')
+            storePassword 'coolweatherbinyu'
+            keyAlias = 'coolweather'
+            keyPassword 'coolweather'
+        }
+    }
     compileSdkVersion 28
     defaultConfig {
-        applicationId "com.example.administrator.coolweather"
+        applicationId "com.coolweather.android"
         minSdkVersion 15
         targetSdkVersion 28
         versionCode 1
@@ -11,9 +23,30 @@ android {
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+        }
+
         release {
             minifyEnabled false
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    buildTypes.each { buildType ->
+        buildType.buildConfigField("String", "HE_FENG_KEY", "\"5cfa71f0523045cbbc2a915848c89ad4\"")
+    }
+
+    sourceSets {
+        main {
+            jniLibs.srcDir 'libs'
+            jni.srcDirs = []    //disable automatic ndk-build
+        }
+    }
+    applicationVariants.all { variant ->
+        variant.outputs.all {
+            outputFileName = "coolweather-${defaultConfig.versionName}.apk"
         }
     }
 }
