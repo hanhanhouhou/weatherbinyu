@@ -1,16 +1,13 @@
 package com.coolweather.android;
 
-import android.app.Fragment;
-import android.app.ProgressDialog;
 import android.content.Intent;
-import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.annotation.RequiresApi;
+import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ListView;
@@ -39,10 +36,11 @@ public class ChooseAreaFragment extends Fragment {
     public static final int LEVEL_PROVINCE = 0;
     public static final int LEVEL_CITY = 1;
     public static final int LEVEL_COUNTY = 2;
-    private ProgressDialog progressDialog;
     private TextView titleText;
     private Button backButton;
     private ListView listView;
+    private View content;
+    private View loading;
     private ArrayAdapter<String> adapter;
     private List<String> dataList = new ArrayList<>();
 
@@ -63,15 +61,16 @@ public class ChooseAreaFragment extends Fragment {
      */
     private int currentLevel;
 
-    @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.choose_area, container, false);
         titleText = view.findViewById(R.id.title_text);
         backButton = view.findViewById(R.id.back_button);
         listView = view.findViewById(R.id.list_view);
+        loading = view.findViewById(R.id.query_layout);
+        content = view.findViewById(R.id.content_layout);
         adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_list_item_1, dataList);
         listView.setAdapter(adapter);
         return view;
@@ -80,24 +79,21 @@ public class ChooseAreaFragment extends Fragment {
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                if (currentLevel == LEVEL_PROVINCE) {
-                    selectedProvince = provincesList.get(position);
-                    queryCities();
-                } else if (currentLevel == LEVEL_CITY) {
-                    selectedCity = cityList.get(position);
-                    queryCounties();
-                } else if (currentLevel == LEVEL_COUNTY) {
-                    Intent intent = new Intent();
-                    intent.setClass(getActivity(), WeatherActivity.class);
-                    County county = countyList.get(position);
-                    intent.putExtra(WeatherActivity.KEY_LOCATION, county.getCountyName());
-                    intent.putExtra(WeatherActivity.KEY_CITY, selectedCity.getCityName());
-                    startActivity(intent);
+        listView.setOnItemClickListener((parent, view, position, id) -> {
+            if (currentLevel == LEVEL_PROVINCE) {
+                selectedProvince = provincesList.get(position);
+                queryCities();
+            } else if (currentLevel == LEVEL_CITY) {
+                selectedCity = cityList.get(position);
+                queryCounties();
+            } else if (currentLevel == LEVEL_COUNTY) {
+                Intent intent = new Intent(getContext(), WeatherActivity.class);
+                County county = countyList.get(position);
+                intent.putExtra(WeatherActivity.KEY_LOCATION, county.getCountyName());
+                intent.putExtra(WeatherActivity.KEY_CITY, selectedCity.getCityName());
+                startActivity(intent);
 //                    String weatherId = countyList.get(position).getweatherId();
-//                    if (getActivity() instanceof MainActivity) {
+//                    if (getActivity() instanceof SplashActivity) {
 //                        Intent intent = new Intent(getActivity(), WeatherActivity.class);
 //                        intent.putExtra("weather_id", weatherId);
 //                        startActivity(intent);
@@ -108,20 +104,16 @@ public class ChooseAreaFragment extends Fragment {
 //                        activity.swipeRefresh.setRefreshing(true);
 //                        activity.requestWeather();
 //                    }
-                }
             }
         });
-        backButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (currentLevel == LEVEL_COUNTY) {
-                    queryCities();
+        backButton.setOnClickListener(v -> {
+            if (currentLevel == LEVEL_COUNTY) {
+                queryCities();
 
-                } else if (currentLevel == LEVEL_CITY) {
-                    queryProvinces();
-                }
-
+            } else if (currentLevel == LEVEL_CITY) {
+                queryProvinces();
             }
+
         });
         queryProvinces();
     }
@@ -202,19 +194,15 @@ public class ChooseAreaFragment extends Fragment {
         showProgressDialog();
         HttpUtil.sendOkHttpRequest(address, new Callback() {
             @Override
-            public void onFailure(Call call, IOException e) {
-                getActivity().runOnUiThread(new Runnable() {
-                    @RequiresApi(api = Build.VERSION_CODES.M)
-                    @Override
-                    public void run() {
-                        closeProgressDialog();
-                        Toast.makeText(getContext(), "加载失败", Toast.LENGTH_SHORT).show();
-                    }
+            public void onFailure(@NonNull Call call, IOException e) {
+                getActivity().runOnUiThread(() -> {
+                    closeProgressDialog();
+                    Toast.makeText(getContext(), "加载失败", Toast.LENGTH_SHORT).show();
                 });
             }
 
             @Override
-            public void onResponse(Call call, Response response) throws IOException {
+            public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
                 String responseText = response.body().string();
                 boolean result = false;
                 if ("province".equals(type)) {
@@ -226,17 +214,14 @@ public class ChooseAreaFragment extends Fragment {
                 }
 
                 if (result) {
-                    getActivity().runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-                            closeProgressDialog();
-                            if ("province".equals(type)) {
-                                queryProvinces();
-                            } else if ("city".equals(type)) {
-                                queryCities();
-                            } else if ("county".equals(type)) {
-                                queryCounties();
-                            }
+                    getActivity().runOnUiThread(() -> {
+                        closeProgressDialog();
+                        if ("province".equals(type)) {
+                            queryProvinces();
+                        } else if ("city".equals(type)) {
+                            queryCities();
+                        } else {
+                            queryCounties();
                         }
                     });
                 }
@@ -250,19 +235,15 @@ public class ChooseAreaFragment extends Fragment {
      * 显示进度框
      */
     private void showProgressDialog() {
-        if (progressDialog == null) {
-            progressDialog = new ProgressDialog(getActivity());
-            progressDialog.setMessage("正在加载....");
-            progressDialog.setCanceledOnTouchOutside(false);
-        }
-        progressDialog.show();
+        content.setVisibility(View.GONE);
+        loading.setVisibility(View.VISIBLE);
     }
 
     /**
      * 关闭进度条
      */
     private void closeProgressDialog() {
-        if (progressDialog != null)
-            progressDialog.dismiss();
+        content.setVisibility(View.VISIBLE);
+        loading.setVisibility(View.GONE);
     }
 }
