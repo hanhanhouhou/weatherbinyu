@@ -26,6 +26,8 @@ import java.util.List;
 public class BestLivableCitiesFragment extends Fragment implements AdapterView.OnItemClickListener {
     private ListView listView;
     private ArrayAdapter<CityLivableExp> adapter;
+    private View content;
+    private View loading;
     private List<CityLivableExp> dataList = new ArrayList<>();
     private CityLivableExpFetcher cityLivableExpFetcher = CityLivableExpFetcher.instance();
     private final Runnable r = new Runnable() {
@@ -49,6 +51,8 @@ public class BestLivableCitiesFragment extends Fragment implements AdapterView.O
         adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_list_item_1, dataList);
         listView.setOnItemClickListener(this);
         listView.setAdapter(adapter);
+        loading = view.findViewById(R.id.query_layout);
+        content = view.findViewById(R.id.content_layout);
         return view;
     }
 
@@ -58,6 +62,7 @@ public class BestLivableCitiesFragment extends Fragment implements AdapterView.O
         if (cityLivableExpFetcher.isReady()) {
             fillListData();
         } else {
+
             new Thread(new Runnable() {
                 @Override
                 public void run() {
@@ -89,5 +94,15 @@ public class BestLivableCitiesFragment extends Fragment implements AdapterView.O
         intent.putExtra(WeatherActivity.KEY_CITY, cityLivableExp.name);
         intent.putExtra(WeatherActivity.KEY_AUTO_LOCATE, false);
         startActivity(intent);
+    }
+
+    private void showProgressDialog() {
+        content.setVisibility(View.GONE);
+        loading.setVisibility(View.VISIBLE);
+    }
+
+    private void closeProgressDialog() {
+        content.setVisibility(View.VISIBLE);
+        loading.setVisibility(View.GONE);
     }
 }

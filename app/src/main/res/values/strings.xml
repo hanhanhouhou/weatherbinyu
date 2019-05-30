@@ -6,4 +6,5 @@
     <string name="querying">正在查询中…</string>
     <string name="action_livable_cities">查看宜居城市</string>
     <string name="exp_des">舒适度指数：越接近65体感越舒适，指数高代表地区偏热，低代表偏冷。</string>
+    <string name="splash_text">Welcome to Cool Weather!</string>
 </resources>
