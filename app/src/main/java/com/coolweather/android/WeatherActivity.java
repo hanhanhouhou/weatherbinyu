@@ -13,6 +13,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -33,6 +34,7 @@ import com.coolweather.android.gson.AQI;
 import com.coolweather.android.gson.Weather;
 import com.coolweather.android.service.AutoUpdateService;
 import com.coolweather.android.util.HttpUtil;
+import com.coolweather.android.util.Utility;
 
 import java.io.IOException;
 
@@ -83,7 +85,7 @@ public class WeatherActivity extends AppCompatActivity {
                 titleUpdateTime.setText("");
                 Toast.makeText(WeatherActivity.this, "获取位置失败", Toast.LENGTH_SHORT).show();
                 swipeRefresh.setRefreshing(false);
-                if (currentCity == null) {
+                if (currentCity == null || currentLocation == null) {
                     // Beijing default
                     currentCity = "北京";
                     currentLocation = "北京";
@@ -204,12 +206,11 @@ public class WeatherActivity extends AppCompatActivity {
 
         //读取缓存在SharedPreference的pic数据,
         String bingPic = prefs.getString("bing_pic", null);
-        if (bingPic != null) {
-            Glide.with(this).load(bingPic).into(bingPicImg);
-        } else {
+        Log.d("cached_bing_pic", String.valueOf(bingPic));
+        showBingPic(bingPic);
+        if (bingPic == null) {
             loadBingPic();
         }
-
     }
 
     private void setupLocationClient() {
@@ -258,8 +259,8 @@ public class WeatherActivity extends AppCompatActivity {
      * 加载必应每日一图
      */
     private void loadBingPic() {
-        String requestBingPic = "http://guolin.tech/api/bing_pic";
-        HttpUtil.sendOkHttpRequest(requestBingPic, new Callback() {
+        Log.d("load", "bing");
+        HttpUtil.sendOkHttpRequest("https://cn.bing.com/HPImageArchive.aspx?format=js&idx=0&n=1", new Callback() {
             @Override
             public void onFailure(@NonNull Call call, @NonNull IOException e) {
                 e.printStackTrace();
@@ -267,13 +268,22 @@ public class WeatherActivity extends AppCompatActivity {
 
             @Override
             public void onResponse(@NonNull Call call, @NonNull Response response) throws IOException {
-                final String bingpic = response.body().string();
+                final String bingpic = Utility.getBingPic(response.body().string());
                 SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
                 editor.putString("bing_pic", bingpic);
                 editor.apply();
-                runOnUiThread(() -> Glide.with(WeatherActivity.this).load(bingpic).into(bingPicImg));
+                runOnUiThread(() -> showBingPic(bingpic));
             }
         });
+    }
+
+    private void showBingPic(String url) {
+        Log.d("WeatherActivity", "bing pic url: " + url);
+        if (url == null) {
+            Glide.with(this).load(R.drawable.bing_default).into(bingPicImg);
+        } else {
+            Glide.with(WeatherActivity.this).load(url).into(bingPicImg);
+        }
     }
 
     /**
@@ -281,6 +291,10 @@ public class WeatherActivity extends AppCompatActivity {
      * location可以是id也可以是
      */
     public void requestWeather() {
+        if (currentCity == null || currentLocation == null) {
+            currentCity = "北京";
+            currentLocation = "北京";
+        }
         // cancel last request
         if (currentAqiCall != null) {
             currentAqiCall.cancel();
@@ -301,16 +315,13 @@ public class WeatherActivity extends AppCompatActivity {
                     return;
                 }
                 e.printStackTrace();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (currentWeatherCall != call) {
-                            // ignore it
-                            return;
-                        }
-                        Toast.makeText(WeatherActivity.this, "获取天气信息失败onFailure", Toast.LENGTH_LONG).show();
-                        swipeRefresh.setRefreshing(false);
+                runOnUiThread(() -> {
+                    if (currentWeatherCall != call) {
+                        // ignore it
+                        return;
                     }
+                    Toast.makeText(WeatherActivity.this, "获取天气信息失败onFailure", Toast.LENGTH_LONG).show();
+                    swipeRefresh.setRefreshing(false);
                 });
             }
 

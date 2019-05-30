@@ -47,6 +47,7 @@ public class ChooseAreaFragment extends Fragment {
     private List<Province> provincesList;
     private List<City> cityList;
     private List<County> countyList;
+    private boolean loadError;
 
     /**
      * 选中的省份
@@ -113,7 +114,17 @@ public class ChooseAreaFragment extends Fragment {
             } else if (currentLevel == LEVEL_CITY) {
                 queryProvinces();
             }
-
+        });
+        content.setOnClickListener(v -> {
+            if (loadError) {
+                if (currentLevel == LEVEL_COUNTY) {
+                    queryCities();
+                } else if (currentLevel == LEVEL_CITY) {
+                    queryProvinces();
+                } else {
+                    queryProvinces();
+                }
+            }
         });
         queryProvinces();
     }
@@ -197,7 +208,8 @@ public class ChooseAreaFragment extends Fragment {
             public void onFailure(@NonNull Call call, IOException e) {
                 getActivity().runOnUiThread(() -> {
                     closeProgressDialog();
-                    Toast.makeText(getContext(), "加载失败", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getContext(), "加载城市列表失败", Toast.LENGTH_SHORT).show();
+                    loadError = true;
                 });
             }
 
@@ -223,6 +235,7 @@ public class ChooseAreaFragment extends Fragment {
                         } else {
                             queryCounties();
                         }
+                        loadError = false;
                     });
                 }
 
