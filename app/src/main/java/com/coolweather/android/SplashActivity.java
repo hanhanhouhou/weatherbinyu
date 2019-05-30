@@ -29,23 +29,20 @@ public class SplashActivity extends AppCompatActivity {
     private static int REQUEST_CODE = 1;
     private Handler handler = new Handler();
 
-    private Runnable r = new Runnable() {
-        @Override
-        public void run() {
-            List<String> permissionsToRequest = new ArrayList<>();
-            for (String permission : permissions) {
-                if (ContextCompat.checkSelfPermission(SplashActivity.this, permission)
-                        != PackageManager.PERMISSION_GRANTED) {
-                    permissionsToRequest.add(permission);
-                }
+    private Runnable r = () -> {
+        List<String> permissionsToRequest = new ArrayList<>();
+        for (String permission : permissions) {
+            if (ContextCompat.checkSelfPermission(SplashActivity.this, permission)
+                    != PackageManager.PERMISSION_GRANTED) {
+                permissionsToRequest.add(permission);
             }
-            if (!permissionsToRequest.isEmpty()) {
-                String[] permissions = new String[permissionsToRequest.size()];
-                permissionsToRequest.toArray(permissions);
-                ActivityCompat.requestPermissions(SplashActivity.this, permissions, REQUEST_CODE);
-            } else {
-                doLaunch();
-            }
+        }
+        if (!permissionsToRequest.isEmpty()) {
+            String[] permissions = new String[permissionsToRequest.size()];
+            permissionsToRequest.toArray(permissions);
+            ActivityCompat.requestPermissions(SplashActivity.this, permissions, REQUEST_CODE);
+        } else {
+            doLaunch();
         }
     };
 

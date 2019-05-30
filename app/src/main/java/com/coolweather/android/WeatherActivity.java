@@ -1,7 +1,6 @@
 package com.coolweather.android;
 
 import android.annotation.SuppressLint;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Color;
@@ -168,35 +167,15 @@ public class WeatherActivity extends AppCompatActivity {
 
         if (isAutoLocate) {
             view.setVisibility(View.VISIBLE);
-            view.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    startActivity(new Intent(WeatherActivity.this, BestLivableCitiesActivity.class));
-                }
-            });
+            view.setOnClickListener(v -> startActivity(new Intent(WeatherActivity.this, BestLivableCitiesActivity.class)));
             located = false;
             setupLocationClient();
-            titleCity.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    new AlertDialog.Builder(WeatherActivity.this)
-                            .setMessage("重新定位?")
-                            .setPositiveButton("是", new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface dialog, int which) {
-                                    startLocate();
-                                }
-                            })
-                            .setNegativeButton("否", null)
-                            .show();
-                }
-            });
-            navButton.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    drawerLayout.openDrawer(Gravity.START);
-                }
-            });
+            titleCity.setOnClickListener(v -> new AlertDialog.Builder(WeatherActivity.this)
+                    .setMessage("重新定位?")
+                    .setPositiveButton("是", (dialog, which) -> startLocate())
+                    .setNegativeButton("否", null)
+                    .show());
+            navButton.setOnClickListener(v -> drawerLayout.openDrawer(Gravity.START));
             String weatherString = prefs.getString("weather", null);
             String aqiString = prefs.getString("aqi", null);
 
@@ -221,12 +200,7 @@ public class WeatherActivity extends AppCompatActivity {
         }
 
 
-        swipeRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                requestWeather();
-            }
-        });
+        swipeRefresh.setOnRefreshListener(this::requestWeather);
 
         //读取缓存在SharedPreference的pic数据,
         String bingPic = prefs.getString("bing_pic", null);
@@ -297,12 +271,7 @@ public class WeatherActivity extends AppCompatActivity {
                 SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
                 editor.putString("bing_pic", bingpic);
                 editor.apply();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        Glide.with(WeatherActivity.this).load(bingpic).into(bingPicImg);
-                    }
-                });
+                runOnUiThread(() -> Glide.with(WeatherActivity.this).load(bingpic).into(bingPicImg));
             }
         });
     }
@@ -349,30 +318,25 @@ public class WeatherActivity extends AppCompatActivity {
             public void onResponse(@NonNull final Call call, @NonNull Response response) throws IOException {
                 final String responseText = response.body().string();
                 final Weather weather = handleWeatherResponse(responseText);
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (currentWeatherCall != call) {
-                            // ignore it
-                            return;
-                        }
-                        if ((weather != null) && "ok".equals(weather.getHeWeather6().get(0).getStatusX())) {
-                            if (locationClient != null) {
-                                SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
-                                editor.putString("weather", responseText);
-                                editor.apply();
-                            }
-                            showWeatherInfo(weather);
-
-                        } else {
-                            Toast.makeText(WeatherActivity.this, responseText, Toast.LENGTH_SHORT).show();
-
-                        }
-                        swipeRefresh.setRefreshing(false);
-                        currentWeatherCall = null;
+                runOnUiThread(() -> {
+                    if (currentWeatherCall != call) {
+                        // ignore it
+                        return;
                     }
+                    if ((weather != null) && "ok".equals(weather.getHeWeather6().get(0).getStatusX())) {
+                        if (locationClient != null) {
+                            SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
+                            editor.putString("weather", responseText);
+                            editor.apply();
+                        }
+                        showWeatherInfo(weather);
 
+                    } else {
+                        Toast.makeText(WeatherActivity.this, responseText, Toast.LENGTH_SHORT).show();
 
+                    }
+                    swipeRefresh.setRefreshing(false);
+                    currentWeatherCall = null;
                 });
 
             }
@@ -386,16 +350,13 @@ public class WeatherActivity extends AppCompatActivity {
                     return;
                 }
                 e.printStackTrace();
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (call != currentAqiCall) {
-                            // ignore it
-                            return;
-                        }
-                        Toast.makeText(WeatherActivity.this, "获取天气信息失败onFailure", Toast.LENGTH_LONG).show();
-                        swipeRefresh.setRefreshing(false);
+                runOnUiThread(() -> {
+                    if (call != currentAqiCall) {
+                        // ignore it
+                        return;
                     }
+                    Toast.makeText(WeatherActivity.this, "获取天气信息失败onFailure", Toast.LENGTH_LONG).show();
+                    swipeRefresh.setRefreshing(false);
                 });
             }
 
@@ -403,40 +364,34 @@ public class WeatherActivity extends AppCompatActivity {
             public void onResponse(@NonNull final Call call, @NonNull Response response) throws IOException {
                 final String responseText = response.body().string();
                 final AQI aqi = handleAQIResponse(responseText);
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (currentAqiCall != call) {
-                            // ignore it
-                            return;
-                        }
-                        if ((aqi != null) && "ok".equals(aqi.getHeWeather6().get(0).getStatus())) {
-                            if (locationClient != null) {
-                                SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
-                                editor.putString("aqi", responseText);
-                                editor.apply();
-                            }
-                            showAQIInfo(aqi);
-                        } else {
-                            Toast.makeText(WeatherActivity.this, responseText, Toast.LENGTH_SHORT).show();
-
-                        }
-                        swipeRefresh.setRefreshing(false);
-                        currentAqiCall = null;
+                runOnUiThread(() -> {
+                    if (currentAqiCall != call) {
+                        // ignore it
+                        return;
                     }
+                    if ((aqi != null) && "ok".equals(aqi.getHeWeather6().get(0).getStatus())) {
+                        if (locationClient != null) {
+                            SharedPreferences.Editor editor = PreferenceManager.getDefaultSharedPreferences(WeatherActivity.this).edit();
+                            editor.putString("aqi", responseText);
+                            editor.apply();
+                        }
+                        showAQIInfo(aqi);
+                    } else {
+                        Toast.makeText(WeatherActivity.this, responseText, Toast.LENGTH_SHORT).show();
 
+                    }
+                    swipeRefresh.setRefreshing(false);
+                    currentAqiCall = null;
                 });
             }
         });
     }
 
     private void showAQIInfo(AQI aqi) {
-
         if (aqi != null) {
             aqiText.setText(aqi.getHeWeather6().get(0).getAir_now_city().getAqi());
             pm25Text.setText(aqi.getHeWeather6().get(0).getAir_now_city().getPm25());
         }
-
     }
 
 
