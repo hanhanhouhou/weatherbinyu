@@ -11,7 +11,7 @@ import okhttp3.logging.HttpLoggingInterceptor;
  * 封装okhttp的网络请求
  */
 public class HttpUtil {
-    public static final OkHttpClient CLIENT;
+    private static final OkHttpClient CLIENT;
 
     static {
         OkHttpClient.Builder builder = new OkHttpClient.Builder();
@@ -21,6 +21,7 @@ public class HttpUtil {
             builder.addInterceptor(logging);
         }
         CLIENT = builder.build();
+        CLIENT.dispatcher().setMaxRequests(2);
     }
 
     public static Call sendOkHttpRequest(String address, okhttp3.Callback callback) {

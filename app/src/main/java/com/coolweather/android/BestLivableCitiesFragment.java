@@ -30,12 +30,7 @@ public class BestLivableCitiesFragment extends Fragment implements AdapterView.O
     private View loading;
     private List<CityLivableExp> dataList = new ArrayList<>();
     private CityLivableExpFetcher cityLivableExpFetcher = CityLivableExpFetcher.instance();
-    private final Runnable r = new Runnable() {
-        @Override
-        public void run() {
-            fillListData();
-        }
-    };
+    private final Runnable r = this::fillListData;
     private Handler handler = new Handler();
 
     @Override
@@ -60,16 +55,14 @@ public class BestLivableCitiesFragment extends Fragment implements AdapterView.O
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
         if (cityLivableExpFetcher.isReady()) {
+            closeProgressDialog();
             fillListData();
         } else {
-
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    cityLivableExpFetcher.waitingForReady();
-                    handler.removeCallbacks(r);
-                    handler.post(r);
-                }
+            showProgressDialog();
+            new Thread(() -> {
+                cityLivableExpFetcher.waitingForReady();
+                handler.removeCallbacks(r);
+                handler.post(r);
             }).start();
         }
     }
@@ -77,6 +70,7 @@ public class BestLivableCitiesFragment extends Fragment implements AdapterView.O
     private void fillListData() {
         dataList.clear();
         dataList.addAll(cityLivableExpFetcher.getCityLivableExpList());
+        closeProgressDialog();
         adapter.notifyDataSetChanged();
     }
 
